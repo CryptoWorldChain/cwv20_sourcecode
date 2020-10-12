@@ -1,0 +1,90 @@
+syntax = "proto3";
+import "poc_evfs.proto";
+package org.brewchain.mcore.actuators.evfs.gens;
+
+
+enum FileActionCMD{
+	REQ = 0; // 请求发送文件EVNode
+	PUT = 1; // 发送文件EVSegment
+	QND = 2;// 读取EVNode信息
+	GET = 3; // 获取文件信息
+	//文件操作
+	
+}
+
+
+
+
+//第一阶段，申请上传
+message ReqEVNode {
+	bytes 	from = 1;//从哪个地址来的
+	string	token_addr_or_symbol = 2;//token地址
+	EVNode 	node = 3;//node info,如果为空，则返回矿机地址
+	bytes	sign = 4;//是否包含签名，如果包含，则直接创建好交易返回
+}
+
+message RespEVNode {
+	int32		ret_code = 1;
+	string		ret_msg = 2;
+	EVNode		evnode = 3;//
+	repeated 	EVSegment segments = 4;
+	repeated 	bytes	miner_addr = 5;
+	repeated 	bytes	miner_pub_keys = 6;
+	repeated 	string	miner_uri = 7;
+	bytes		tx_hash = 8;//如果签名成功提交交易返回
+	bytes		code_data = 9;
+}
+
+//第二阶段，申请上传
+message ReqPutSegment {
+	bytes 		tx_req_hash = 1;//请求的hash
+	EVSegment	cur_part = 2;
+	bytes   	contents = 3; 
+	int32   	offset = 4;
+	int32		compress = 5;
+	bool		from_client = 6;//
+	repeated bytes		replia_miners_addr = 7;//副本的地址
+	repeated bytes		replia_secret_key = 8;//副本的私钥(通过公钥加密)
+}
+
+message RespPutSegment {
+	int32	ret_code = 1;
+	string	ret_msg = 2;
+}
+
+
+message ReqReadEVNode {
+	bytes	node_uuid = 1;//请求的内容
+	bytes	sign = 2;//
+}
+
+message RespReadEVNode {
+	int32	ret_code = 1;
+	string	ret_msg = 2;
+	EVNode		ev_node = 3;//
+
+	repeated 	EVSegment segment = 4;//
+	
+	repeated 	bytes	miner_addr = 5;
+	repeated 	bytes	miner_pub_keys = 6;
+	repeated 	string	miner_uri = 7;
+	
+	
+}
+
+//获取文件信息
+message ReqGetSegment {
+	bytes	node_uuid = 1;//请求的内容
+	bytes  	segment_uuid = 2;//获取某个部分，如果空，则response的data没信息
+	int32	offset = 3;
+	int32	limit = 4;
+	bytes	sign = 10;//
+}
+
+message RespGetSegment {
+	int32	ret_code = 1;
+	string	ret_msg = 2;
+	bytes	data = 3;//文件内容
+}
+
+
