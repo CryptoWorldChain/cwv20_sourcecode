@@ -1,0 +1,46 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+version = '2020.1.1'
+project.group='org.brewchain'
+
+apply plugin: 'zippo'
+
+buildscript {
+
+    dependencies {
+        classpath "onight.osgi:zpp-gradle_1.8:3.4.0"
+		classpath ("org.brewchain.mcore:org.brewchain.mcore.microledger:2020.3.3")
+//        classpath "org.brewchain:org.brewchain.coreapi:3.0.0"
+        // classpath "org.brewchain.core:org.brewchain.core.model:0.0.1"
+    }
+}
+
+ext {
+    slf4jVersion = '1.7.7'
+    leveldbVersion = '0.7'
+    scastleVersion = '1.53.0.0'
+    springVersion = '4.2.0.RELEASE'
+    hibernateVersion = '4.3.7.Final'
+    junitVersion = '4.11'
+}
+
+dependencies {
+    compile group: 'commons-collections', name: 'commons-collections', version: '3.2'
+//    compile ("com.sleepycat:je:5.0.73")
+    compile ("org.apache.commons:commons-collections4:4.0")
+
+    compile 'com.fasterxml.jackson:jackson-parent:2.5'
+    compile "com.fasterxml.jackson.core:jackson-databind:2.5.1"
+    includeInJar "com.madgag.spongycastle:core:1.58.0.0"
+    includeInJar "com.madgag.spongycastle:prov:1.58.0.0"
+	compile ("org.brewchain.mcore:org.brewchain.mcore.microledger:2020.3.3")
+	compile ("org.brewchain.mcore:org.brewchain.mcore.crypto:2020.1.0")
+	compile ("org.brewchain.mcore.actuators:org.brewchain.mcore.actuators.tokens:2020.2.2")
+}
+
+jar {
+    manifest{
+        attributes( 'Import-Ignore':'com.cedarsoftware,com.google,org.apache.commons,com.fasterxml.jackson,org.spongycastle')
+    }
+}
