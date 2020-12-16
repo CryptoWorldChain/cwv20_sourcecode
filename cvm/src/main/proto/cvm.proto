@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package org.brewchain.cvm.model;
+
+enum PModule {
+	CVM = 0;
+};
+
+enum PCommand {
+	BCD = 0; //编译Solidity源码到字节码
+	RUF = 1; //运行方法
+	RUC = 2; //运行合约
+	GCS = 3; //查询合约storage
+};
+
+message CVMContract {
+	bytes	datas = 1;
+	bool	parrallel = 2;//是否并行执行	
+}
+
+message AccountStorageMessage {
+	string address = 1;
+	repeated AccountStorageKey keys = 2;
+}
+
+message AccountStorageKey {
+	string key = 1;
+	AccountStorageValueDesc desc = 2;
+}
+
+message AccountStorageValueDesc {
+	string name = 1;
+	string type = 2;
+	repeated AccountStorageValueDesc propType = 3;
+	AccountStorageValueDesc subValueType = 4;
+}
+
+message RetAccountStorageMessage {
+	int32 retCode = 1;
+	string retMsg = 2;
+	repeated AccountStorageItem items = 3;
+}
+
+message AccountStorageItem {
+	string key = 1;
+	string value = 2;
+	repeated AccountStorageItem subItems = 3;
+}
