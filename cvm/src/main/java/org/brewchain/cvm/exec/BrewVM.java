@@ -28,7 +28,7 @@ public class BrewVM {
 				log.info("unknow op code:" + Hex.toHexString(new byte[] { program.getCurrentOp() }));
 				throw Program.Exception.invalidOpCode(program.getCurrentOp());
 			} else {
-
+				int currentPC = program.getPC();
 				program.verifyStackSize(op.require());
 				program.verifyStackOverflow(op.require(), op.ret());
 				// long oldMemSize = program.getMemSize();
@@ -45,7 +45,7 @@ public class BrewVM {
 				program.setPreviouslyExecutedOp(op.val());
 
 				if (sb != null) {
-					log.debug(logString, String.format("%5s", "[" + program.getPC() + "]"),
+					log.debug(logString, String.format("%5s", "[" + currentPC + "]"),
 							String.format("%-12s", op.name()), 0, program.getCallDeep(), sb.toString());
 				}
 
@@ -75,6 +75,7 @@ public class BrewVM {
 						log.warn("VM halted for execute timeout:" + (System.currentTimeMillis() - start) + ",in "
 								+ Constants.MAX_EXEC_TIMEMS);
 						program.resetFutureRefund();
+						program.getInvokeInfo().getResult().setRevert();
 						program.stop();
 						break;
 					}
@@ -82,6 +83,7 @@ public class BrewVM {
 			}
 			return vmCounter;
 		} catch (RuntimeException e) {
+			log.error("vm runtime failed",e);
 			program.setRuntimeFailure(e);
 			return 1;
 		} catch (StackOverflowError soe) {

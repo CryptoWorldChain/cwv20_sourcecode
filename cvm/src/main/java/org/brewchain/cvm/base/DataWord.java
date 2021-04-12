@@ -21,6 +21,7 @@ public class DataWord implements Comparable<DataWord> {
 	public static final DataWord ZERO = new DataWord(new byte[32]); // don't push it in to the stack
 	public static final DataWord ZERO_EMPTY_ARRAY = new DataWord(new byte[0]); // don't push it in to the stack
 
+	public static final byte EMPTY_CODEHASH_ACCOUNT[] =Hex.decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
 	public static final long MEM_SIZE = 32 + 16 + 16;
 
 	private byte[] data = new byte[32];

@@ -16,7 +16,7 @@ public class CR_SLOAD extends AbstractCodeRunner {
 		DataWord key = program.stackPop();
 		DataWord val = program.storageLoad(key);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("key: " + key + " value: " + val);
 		}

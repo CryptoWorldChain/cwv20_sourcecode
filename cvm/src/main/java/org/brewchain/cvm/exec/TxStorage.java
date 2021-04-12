@@ -23,7 +23,9 @@ public class TxStorage implements Storage {
 	@Override
 	public BigInteger getBalance(byte[] address) throws Exception {
 		log.debug("getBalance:" + Hex.encodeHexString(address));
-		AccountInfoWrapper aiw = txwrapper.getAccount(ByteString.copyFrom(address));
+		AccountInfoWrapper aiw = txwrapper.getBlockContext().getAccounts().get(address);
+//		AccountInfoWrapper aiw=txwrapper.getAccount(ByteString.copyFrom(address));
+//		AccountInfoWrapper aiw=txwrapper.getTouchAccounts().get(ByteString.copyFrom(address));
 		if (aiw != null) {
 			return aiw.getBalance();
 		}
@@ -32,8 +34,7 @@ public class TxStorage implements Storage {
 
 	@Override
 	public byte[] getStorage(byte[] address, byte[] key) throws Exception {
-
-		AccountInfoWrapper aiw = txwrapper.getAccount(ByteString.copyFrom(address));
+		AccountInfoWrapper aiw=txwrapper.getAccount(ByteString.copyFrom(address));
 		if (aiw != null) {
 			byte bb[] = aiw.getStorage(key);
 			if (bb != null) {
@@ -50,12 +51,17 @@ public class TxStorage implements Storage {
 
 	@Override
 	public void putStorage(byte[] address, byte[] key, byte[] values) throws Exception {
-		AccountInfoWrapper aiw = txwrapper.getAccount(ByteString.copyFrom(address));
+		AccountInfoWrapper aiw= txwrapper.getAccount(ByteString.copyFrom(address));
+
 		if (aiw != null) {
 			log.debug("svmstorage putStorage ::" + Hex.encodeHexString(address) + ",key=" + Hex.encodeHexString(key)
 					+ ",value=" + Hex.encodeHexString(values));
 
 			aiw.putStorage(key, values);
+		}else{
+			log.debug("svmstorage putStorage :aiw not found:" + Hex.encodeHexString(address) + ",key=" + Hex.encodeHexString(key)
+					+ ",value=" + Hex.encodeHexString(values));
+
 		}
 	}
 

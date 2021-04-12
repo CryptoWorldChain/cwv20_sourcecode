@@ -20,7 +20,7 @@ public class CR_CALLDATACOPY extends AbstractCodeRunner {
 
 		byte[] msgData = program.getDataCopy(dataOffsetData, lengthData);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("data: " + Hex.toHexString(msgData));
 		}

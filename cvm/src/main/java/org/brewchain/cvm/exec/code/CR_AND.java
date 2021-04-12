@@ -16,7 +16,7 @@ public class CR_AND extends AbstractCodeRunner {
 		DataWord word1 = program.stackPop();
 		DataWord word2 = program.stackPop();
 		if (hint != null) {
-			hint.append(word1.value()).append(" && ").append(word2.value());
+			hint.append(word1.value().toString(16)).append(" && ").append(word2.value().toString(16));
 		}
 		word1.and(word2);
 		program.stackPush(word1);

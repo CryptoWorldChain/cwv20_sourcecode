@@ -20,9 +20,9 @@ public class CR_ISZERO extends AbstractCodeRunner {
 			word1.and(DataWord.ZERO);
 		}
 
-		if (hint != null) {
+//		if (hint != null) {
 			hint.append(word1.value());
-		}
+//		}
 
 		program.stackPush(word1);
 		program.step();

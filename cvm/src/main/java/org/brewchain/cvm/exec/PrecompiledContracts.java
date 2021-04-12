@@ -14,6 +14,7 @@ import java.math.BigInteger;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.brewchain.cvm.base.DataWord;
+import org.brewchain.cvm.exec.invoke.ProgramInvokerInfo;
 import org.brewchain.cvm.exec.zksnark.BN128;
 import org.brewchain.cvm.exec.zksnark.BN128Fp;
 import org.brewchain.cvm.exec.zksnark.BN128G1;
@@ -22,6 +23,7 @@ import org.brewchain.cvm.exec.zksnark.Fp;
 import org.brewchain.cvm.exec.zksnark.Fp2;
 import org.brewchain.cvm.exec.zksnark.PairingCheck;
 import org.brewchain.cvm.utils.BIUtil;
+//import org.brewchain.mcore.actuators.tokens.impl20.RC20AccountWrapper;
 import org.brewchain.mcore.api.ICryptoHandler;
 import org.brewchain.mcore.handler.MCoreServices;
 //import org.brewchain.rcvm.utils.HashUtil;
@@ -102,7 +104,6 @@ public class PrecompiledContracts {
 
 	public static abstract class PrecompiledContract {
 		public abstract long getGasForData(byte[] data);
-
 		public abstract Pair<Boolean, byte[]> execute(byte[] data);
 	}
 

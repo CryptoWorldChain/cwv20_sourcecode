@@ -21,7 +21,7 @@ public class CR_SHA3 extends AbstractCodeRunner {
 
 		DataWord word = new DataWord(encoded);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append(word.toString());
 		}

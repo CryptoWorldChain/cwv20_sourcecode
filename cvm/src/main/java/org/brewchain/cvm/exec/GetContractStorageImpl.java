@@ -39,16 +39,17 @@ public class GetContractStorageImpl extends SessionModules<AccountStorageMessage
 //	BlockChainHelper blockChainHelper;
 	@ActorRequire(name = "MCoreServices", scope = "global")
 	MCoreServices mcore;
-	
-	@Override
-	public String[] getCmds() {
-		return new String[] { PCommand.GCS.name() };
-	}
 
 	@Override
 	public String getModule() {
 		return PModule.CVM.name();
 	}
+
+	@Override
+	public String[] getCmds() {
+		return new String[] { PCommand.GCS.name() };
+	}
+
 
 	@Override
 	public void onPBPacket(final FramePacket pack, final AccountStorageMessage pb, final CompleteHandler handler) {

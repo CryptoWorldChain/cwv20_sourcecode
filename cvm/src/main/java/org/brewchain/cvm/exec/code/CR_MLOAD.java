@@ -16,7 +16,7 @@ public class CR_MLOAD extends AbstractCodeRunner {
 		DataWord addr = program.stackPop();
 		DataWord data = program.memoryLoad(addr);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("data: " + data);
 		}

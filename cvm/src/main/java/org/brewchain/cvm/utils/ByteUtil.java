@@ -481,11 +481,9 @@ public class ByteUtil {
      * @param arrays - arrays to merge
      * @return - merged array
      */
-    public static byte[] merge(byte[]... arrays)
-    {
+    public static byte[] merge(byte[]... arrays) {
         int count = 0;
-        for (byte[] array: arrays)
-        {
+        for (byte[] array : arrays) {
             count += array.length;
         }
 

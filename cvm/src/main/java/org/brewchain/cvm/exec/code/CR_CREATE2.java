@@ -7,9 +7,11 @@ import org.brewchain.cvm.program.Stack;
 import org.brewchain.cvm.utils.ByteUtil;
 import org.spongycastle.util.encoders.Hex;
 
-public class CR_CREATE extends AbstractCodeRunner {
+import javax.xml.crypto.Data;
 
-	public CR_CREATE(OpCode op) {
+public class CR_CREATE2 extends AbstractCodeRunner {
+
+	public CR_CREATE2(OpCode op) {
 		super(op);
 		// TODO Auto-generated constructor stub
 	}
@@ -19,13 +21,18 @@ public class CR_CREATE extends AbstractCodeRunner {
 		DataWord value = program.stackPop();
 		DataWord inOffset = program.stackPop();
 		DataWord inSize = program.stackPop();
+		DataWord salt = program.stackPop();
 
 		byte[] codeData = program.memoryChunk(inOffset.intValueSafe(), inSize.intValueSafe());
 		byte[] encoded = program.getMcore().getCrypto().sha3(codeData);
 		byte[] buffer = ByteUtil.merge(new byte[]{(byte)0xff},program.getCallerAddress().getLast20Bytes(),
-				new DataWord(program.getNonce()).getData(),encoded);
+				salt.getData(),encoded);
 
 		byte[] encodedHash = program.getMcore().getCrypto().sha3(buffer);
+//		program.c
+//		program.createContract(value, inOffset, inSize);
+//
+
 
 		byte []address=new DataWord(encodedHash).getLast20Bytes();
 
@@ -36,9 +43,9 @@ public class CR_CREATE extends AbstractCodeRunner {
 		program.createContract(codeData,address,value);
 		program.stackPush(new DataWord(address));
 
+//		program.
 		program.step();
-
-
+		
 		return 0;
 	}
 

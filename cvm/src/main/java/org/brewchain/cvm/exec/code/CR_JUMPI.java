@@ -16,11 +16,12 @@ public class CR_JUMPI extends AbstractCodeRunner {
 		DataWord pos = program.stackPop();
 		DataWord cond = program.stackPop();
 
+		hint.append(  cond.isZero()+"~> " );
 		if (!cond.isZero()) {
 			int nextPC = program.verifyJumpDest(pos);
 
-			if (hint!=null)
-				hint.append( "~> " + nextPC);
+//			if (hint!=null)
+			hint.append( "~> " + nextPC);
 
 			program.setPC(nextPC);
 		} else {

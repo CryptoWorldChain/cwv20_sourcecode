@@ -7,10 +7,12 @@ import java.util.Arrays;
 import org.brewchain.cvm.base.DataWord;
 import org.brewchain.cvm.exec.CVMAccountWrapper;
 import org.brewchain.cvm.program.ProgramResult;
+import org.brewchain.mcore.actuator.exception.TransactionExecuteException;
 import org.brewchain.mcore.bean.TransactionInfoWrapper;
 import org.brewchain.mcore.concurrent.AccountInfoWrapper;
 
 import lombok.Data;
+import org.brewchain.mcore.tools.bytes.BytesHelper;
 
 @Data
 public class ProgramInvokerInfo {
@@ -31,16 +33,24 @@ public class ProgramInvokerInfo {
 	ProgramResult result = new ProgramResult();
 
 	public ProgramInvokerInfo(AccountInfoWrapper sender, TransactionInfoWrapper txw, CVMAccountWrapper contractAccount,
-			byte[] msgData, BlockContextDWORD blockInfo, int callDeep) {
+			byte[] msgData, BlockContextDWORD blockInfo, int callDeep,DataWord callValue) {
 		this.sender = sender;
 		this.txw = txw;
 		this.msgData = msgData;
 		this.contractAccount = contractAccount;
 		this.blockInfo = blockInfo;
 		this.callDeep = callDeep;
+		this.callValue = callValue.clone();
 	}
 
 	public DataWord getOwnerAddress() {
+		if (address == null) {
+			address = new DataWord(contractAccount.getInfo().getAddress().toByteArray());
+		}
+		return address;
+	}
+
+	public DataWord getContractAddress() {
 		if (address == null) {
 			address = new DataWord(contractAccount.getInfo().getAddress().toByteArray());
 		}
@@ -70,20 +80,11 @@ public class ProgramInvokerInfo {
 	}
 
 	public DataWord getCallValue() {
-		if (callValue == null) {
-			if (callDeep == 0) {// 只有第一层才会有
-				if (txw.getTxinfo().getBody().getOutputsCount() == 1
-						&& !txw.getTxinfo().getBody().getOutputs(0).getAmount().isEmpty()) {
-					callValue = new DataWord(txw.getTxinfo().getBody().getOutputs(0).getAmount().toByteArray());
-				} else {
-					callValue = DataWord.ZERO;
-				}
-
-			} else {
-				callValue = DataWord.ZERO;
-			}
-		}
 		return callValue;
+	}
+
+	public DataWord getChainID(){
+		return DataWord.ZERO;
 	}
 
 	private static BigInteger MAX_MSG_DATA = BigInteger.valueOf(Integer.MAX_VALUE);

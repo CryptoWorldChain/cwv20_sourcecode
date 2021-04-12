@@ -25,7 +25,7 @@ public class CR_RETURNDATACOPY extends AbstractCodeRunner {
 					program.getReturnDataBufferSize().longValueSafe());
 		}
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("data: " + Hex.toHexString(msgData));
 		}

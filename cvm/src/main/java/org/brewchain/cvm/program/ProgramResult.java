@@ -12,19 +12,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.protobuf.ByteString;
+import lombok.Data;
 import org.brewchain.cvm.base.DataWord;
+import org.brewchain.cvm.base.LogInfo;
 import org.brewchain.cvm.exec.CallCreate;
 
 /**
  * @author Roman Mandeleil
  * @since 07.06.2014
  */
+@Data
 public class ProgramResult {
 
     private long gasUsed;
     private byte[] hReturn = EMPTY_BYTE_ARRAY;
     private RuntimeException exception;
     private boolean revert;
+
+    List<LogInfo>  logInfos = new ArrayList<>();
+
+
 
     private Set<DataWord> deleteAccounts;
     private long futureRefund = 0;
@@ -166,6 +174,24 @@ public class ProgramResult {
         ProgramResult result = new ProgramResult();
         result.setHReturn(EMPTY_BYTE_ARRAY);
         return result;
+    }
+
+    public void addLogInfo(LogInfo log){
+        logInfos.add(log);
+    }
+
+    public void addLogInfo(List<LogInfo> logs){
+        if(logs!=null&&logs.size()>0)
+        {
+            logInfos.addAll(logs);
+        }
+    }
+    public List<ByteString> encodeLogs(){
+        List<ByteString> logs = new ArrayList<>();
+        for(LogInfo log:logInfos){
+            logs.add(log.encode());
+        }
+        return logs;
     }
     
     

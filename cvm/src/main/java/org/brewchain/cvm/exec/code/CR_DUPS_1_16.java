@@ -11,10 +11,14 @@ public class CR_DUPS_1_16 extends AbstractCodeRunner {
 		super(op);
 	}
 
+	int n = op.val() - OpCode.DUP1.val() + 1;
+
 	public int exec(Program program, Stack stack, StringBuffer hint) {
-		int n = op.val() - OpCode.DUP1.val() + 1;
+
 		DataWord word_1 = stack.get(stack.size() - n);
 		program.stackPush(word_1.clone());
+		hint.append("DUPS: " + n + ",stack size="+stack.size() + ",top="+stack.peek().toString());
+
 		program.step();
 		
 		return 1;

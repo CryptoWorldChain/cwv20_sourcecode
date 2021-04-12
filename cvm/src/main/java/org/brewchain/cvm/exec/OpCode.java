@@ -114,6 +114,24 @@ public enum OpCode {
      */
     BYTE(0x1a, 2, 1, VeryLowTier),
 
+
+    /**
+     * (0x1b) Shift Left,(arg2 * 2^arg1) mod 2^256
+     */
+    SHL(0x1b, 2, 1, VeryLowTier),
+
+    /**
+     * (0x1c) Shift Right,floor(arg2 / 2^arg1)
+     */
+    SHR(0x1c, 2, 1, VeryLowTier),
+
+
+    /**
+     * (0x1c) arithmetic shift right,floor(arg2 / 2^arg1)
+     */
+    SAR(0x1d, 2, 1, VeryLowTier),
+
+
     /*  Cryptographic Operations    */
 
     /**
@@ -172,9 +190,7 @@ public enum OpCode {
      */
     CODECOPY(0x39, 3, 0, VeryLowTier), // [len code_start mem_start CODECOPY]
 
-    RETURNDATASIZE(0x3d, 0, 1, BaseTier),
 
-    RETURNDATACOPY(0x3e, 3, 0, VeryLowTier),
     /**
      * (0x3a) Get price of gas in current
      * environment
@@ -190,6 +206,17 @@ public enum OpCode {
      * environment to memory with given offset
      */
     EXTCODECOPY(0x3c, 4, 0, ExtTier),
+
+    /**
+     * (0x3d) get size of return data buffer
+     */
+    RETURNDATASIZE(0x3d,0,1,VeryLowTier),
+
+
+    RETURNDATACOPY(0x3e, 3, 0, VeryLowTier),
+
+    EXTCODEHASH(0x3f, 1, 1, ExtTier),
+
 
     /*  Block Information   */
 
@@ -218,6 +245,17 @@ public enum OpCode {
      * (0x45) Get the block’s gas limit
      */
     GASLIMIT(0x45, 0, 1, BaseTier),
+
+    /**
+     * (0x45) Get the block’s gas limit
+     */
+    CHAINID(0x46, 0, 1, BaseTier),
+
+    /**
+     * (0x45) Get the block’s gas limit
+     */
+    SELFBALANCE(0x47, 0, 1, BaseTier),
+
 
     /*  Memory, Storage and Flow Operations */
 
@@ -575,6 +613,8 @@ public enum OpCode {
      *  also the Value parameter is omitted for this opCode
      */
     DELEGATECALL(0xf4, 6, 1, SpecialTier, CallFlags.Call, CallFlags.Stateless, CallFlags.Delegate),
+
+    CREATE2(0xf5, 4, 1, SpecialTier, CallFlags.Call, CallFlags.Stateless, CallFlags.Delegate),
 
     /**
      *  opcode that can be used to call another contract (or itself) while disallowing any

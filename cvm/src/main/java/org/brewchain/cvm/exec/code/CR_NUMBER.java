@@ -15,7 +15,7 @@ public class CR_NUMBER extends AbstractCodeRunner {
 	public int exec(Program program, Stack stack, StringBuffer hint) {
 		DataWord number = program.getNumber();
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("number: " + number.value());
 		}

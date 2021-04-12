@@ -5,23 +5,21 @@ import org.brewchain.cvm.exec.OpCode;
 import org.brewchain.cvm.program.Program;
 import org.brewchain.cvm.program.Stack;
 
-public class CR_MSTORE extends AbstractCodeRunner {
+public class CR_CHAINID extends AbstractCodeRunner {
 
-	public CR_MSTORE(OpCode op) {
+	public CR_CHAINID(OpCode op) {
 		super(op);
 		// TODO Auto-generated constructor stub
 	}
 
 	public int exec(Program program, Stack stack, StringBuffer hint) {
-		DataWord addr = program.stackPop();
-		DataWord value = program.stackPop();
 
-//		if (hint!=null)
-		{
-			hint.append("addr: " + addr + " value: " + value);
+		DataWord chainID = program.getChainID();
+		if (hint != null) {
+			hint.append("chainID: " + chainID);
 		}
 
-		program.memorySave(addr, value);
+		program.stackPush(chainID);
 		program.step();
 		return 1;
 	}

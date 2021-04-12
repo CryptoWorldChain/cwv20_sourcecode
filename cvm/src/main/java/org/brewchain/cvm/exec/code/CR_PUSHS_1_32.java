@@ -15,17 +15,18 @@ public class CR_PUSHS_1_32 extends AbstractCodeRunner {
 	}
 	int nPush = op.val() - PUSH1.val() + 1;
 	public int exec(Program program, Stack stack, StringBuffer hint) {
-		program.step();
-		
 
 		byte[] data = program.sweep(nPush);
+		program.stackPush(data);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
-			hint .append(Hex.toHexString(data));
+			hint.append(Hex.toHexString(data) +",n="+ nPush +",stack size="+stack.size());
+			if(stack.size()>0){
+				hint.append(":").append(stack.peek().toString());
+			}
 		}
 
-		program.stackPush(data);
 		return 0;
 	}
 

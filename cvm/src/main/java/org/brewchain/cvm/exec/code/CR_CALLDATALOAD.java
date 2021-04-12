@@ -16,7 +16,7 @@ public class CR_CALLDATALOAD extends AbstractCodeRunner {
 		DataWord dataOffs = program.stackPop();
 		DataWord value = program.getDataValue(dataOffs);
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("data: " + value);
 		}

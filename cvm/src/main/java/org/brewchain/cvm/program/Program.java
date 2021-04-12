@@ -1,42 +1,36 @@
 package org.brewchain.cvm.program;
 
-import static java.lang.StrictMath.min;
-import static java.lang.String.format;
-import static org.apache.commons.lang3.ArrayUtils.getLength;
-import static org.apache.commons.lang3.ArrayUtils.isEmpty;
-import static org.apache.commons.lang3.ArrayUtils.nullToEmpty;
-
-import java.io.ByteArrayOutputStream;
-import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.NavigableSet;
-import java.util.TreeSet;
-
+import com.google.protobuf.ByteString;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import onight.tfw.outils.conf.PropHelper;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brewchain.cvm.base.DataWord;
-import org.brewchain.cvm.exec.BrewVM;
-import org.brewchain.cvm.exec.CRC20Contract;
-import org.brewchain.cvm.exec.CRC21Contract;
-import org.brewchain.cvm.exec.CVMAccountWrapper;
-import org.brewchain.cvm.exec.OpCode;
-import org.brewchain.cvm.exec.PrecompiledContracts.PrecompiledContract;
+import org.brewchain.cvm.base.LogInfo;
+import org.brewchain.cvm.config.CVMConfig;
+import org.brewchain.cvm.exec.*;
+import org.brewchain.cvm.exec.invoke.BlockContextDWORD;
 import org.brewchain.cvm.exec.invoke.ProgramInvokerInfo;
 import org.brewchain.cvm.model.Cvm.CVMContract;
 import org.brewchain.cvm.utils.Utils;
-import org.brewchain.mcore.actuators.tokens.impl20.RC20AccountWrapper;
-import org.brewchain.mcore.actuators.tokens.impl721.RC721AccountWrapper;
+import org.brewchain.mcore.actuator.exception.TransactionExecuteException;
+import org.brewchain.mcore.actuator.exception.TransactionParameterInvalidException;
+import org.brewchain.mcore.bean.ApplyBlockContext;
+import org.brewchain.mcore.bean.TransactionInfoWrapper;
 import org.brewchain.mcore.concurrent.AccountInfoWrapper;
 import org.brewchain.mcore.handler.MCoreServices;
 import org.brewchain.mcore.model.Account.AccountInfo;
 import org.brewchain.mcore.model.Account.AccountInfo.AccountType;
+import org.brewchain.mcore.tools.bytes.BytesHelper;
 import org.spongycastle.util.encoders.Hex;
 
-import com.google.protobuf.ByteString;
+import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
+import java.util.*;
 
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-import onight.tfw.outils.conf.PropHelper;
+import static java.lang.StrictMath.min;
+import static java.lang.String.format;
+import static org.apache.commons.lang3.ArrayUtils.*;
 
 @Slf4j
 @Data
@@ -57,68 +51,86 @@ public class Program {
 	private byte previouslyExecutedOp;
 	private boolean stopped;
 
-	MCoreServices mcore;
+    ApplyBlockContext btx;
 
-	int gas_cost;
-	
-	public void  addGas(int cost) {
-		gas_cost = gas_cost + cost;
-	}
-	byte returnDataBuffer[];
-	byte[] ops;
+    MCoreServices mcore;
+    int gas_cost;
 
-	public Program(CVMAccountWrapper contractAccount, MCoreServices mcore, ProgramInvokerInfo invokeInfo,
-			Storage storage) {
-		this.contractAccount = contractAccount;
-		this.mcore = mcore;
-		this.invokeInfo = invokeInfo;
-		this.memory = new Memory();
-		this.stack = new Stack();
+    public void addGas(int cost) {
+        gas_cost = gas_cost + cost;
+    }
 
-		this.pc = 0;
-		if (contractAccount.getCompiledProgram() != null) {
-			this.ops = contractAccount.getCompiledProgram().getOps();
-		}
-		this.storage = storage;
-	}
+    byte returnDataBuffer[];
+    byte[] ops;
+
+    HashMap<Integer, PrecompiledExecutor> precompilers;
+    TransactionInfoWrapper txw;
+
+    public Program(CVMAccountWrapper contractAccount, TransactionInfoWrapper txw,
+                   ProgramInvokerInfo invokeInfo,
+                   Storage storage, HashMap<Integer, PrecompiledExecutor> precompilers) {
+        this.contractAccount = contractAccount;
+        this.btx = txw.getBlockContext();
+        this.txw = txw;
+
+//        this.mcore = btx.getMcore();
+		this.mcore=txw.getMcore();
+        this.invokeInfo = invokeInfo;
+        this.memory = new Memory();
+        this.stack = new Stack();
+        this.precompilers = precompilers;
+        this.pc = 0;
+        if (contractAccount.getCompiledProgram() != null) {
+            this.ops = contractAccount.getCompiledProgram().getOps();
+        }
+        this.storage = storage;
+    }
 
 	static PropHelper props = new PropHelper(null);
 
-	public AccountInfoWrapper getProgramContractAccount(DataWord codeAddr) {
-		ByteString code_addr_BS = ByteString.copyFrom(codeAddr.getLast20Bytes());
-		AccountInfoWrapper existContract = invokeInfo.getTxw().getBlockContext().getAccounts().get(code_addr_BS);
-		if (existContract == null) {
-			synchronized (invokeInfo.getTxw().getBlockContext().getAccounts()) {
-				existContract = invokeInfo.getTxw().getBlockContext().getAccounts().get(code_addr_BS);
-				if (existContract == null || !(existContract instanceof CVMAccountWrapper)) {
-					AccountInfo.Builder account = mcore.getAccountHandler().getAccount(code_addr_BS);
-					if (account == null) {
-						return null;
-					}
-
-					if (account.getType() == AccountType.RC20_CONTRACT) {
-						if (existContract != null) {
-							return existContract;
-						} else {
-							existContract = new RC20AccountWrapper(account);
-//							existContract.loadStorageTrie(mcore.getStateTrie());
-						}
-					} else if (account.getType() == AccountType.RC721_CONTRACT) {
-						if (existContract != null) {
-							return existContract;
-						} else {
-							existContract = new RC721AccountWrapper(account);
-//							existContract.loadStorageTrie(mcore.getStateTrie());
-						}
-					} else {
-						existContract = new CVMAccountWrapper(account);
-						existContract.loadStorageTrie(mcore.getStateTrie());
-					}
-					invokeInfo.getTxw().getBlockContext().getAccounts().put(code_addr_BS, existContract);
+    public AccountInfoWrapper getProgramContractAccount(DataWord codeAddr) {
+        byte []code_addr = codeAddr.getLast20Bytes();
+        ByteString code_addr_BS = ByteString.copyFrom(codeAddr.getLast20Bytes());
+        AccountInfoWrapper existContract = invokeInfo.getTxw().getAccount(code_addr_BS);
+        if(existContract!=null) {
+            if(existContract instanceof CVMAccountWrapper){
+                log.debug("load exist contract account from cache");
+            }else {
+				AccountInfo.Builder account = mcore.getAccountHandler().getAccount(code_addr);
+				if (account == null) {
+					account=mcore.getAccountHandler().createAccount(code_addr_BS);
+//					return null;
 				}
-			}
-		}
-		return existContract;
+                if (existContract.getInfo().getType() == AccountType.CVM_CONTRACT) {
+                	existContract=new CVMAccountWrapper(account);
+                    existContract.loadStorageTrie(mcore.getStateTrie());
+                }
+                invokeInfo.getTxw().getTouchAccounts().put(code_addr_BS, existContract);
+            }
+        }else{
+            log.warn("error in load touchaccount:"+Hex.toHexString(code_addr));
+        }
+//        if (existContract == null) {
+//            synchronized (invokeInfo.getTxw().getBlockContext().getAccounts()) {
+//                existContract = invokeInfo.getTxw().getBlockContext().getAccounts().get(code_addr);
+//                if (existContract == null) {
+//                    AccountInfo.Builder account = mcore.getAccountHandler().getAccount(code_addr);
+//                    if (account == null) {
+//                        return null;
+//                    }
+//                    if(account.getType() == AccountType.CVM_CONTRACT){
+//                        existContract = new CVMAccountWrapper(account);
+//                        existContract.loadStorageTrie(mcore.getStateTrie());
+//                        invokeInfo.getTxw().getBlockContext().getAccounts().appendAccount(existContract);
+//                    }else{
+//                        existContract = new AccountInfoWrapper(account);
+//                        invokeInfo.getTxw().getBlockContext().getAccounts().appendAccount(existContract);
+//                    }
+//
+//                }
+//            }
+//        }
+        return existContract;
 
 	}
 
@@ -156,10 +168,13 @@ public class Program {
 		stackPush(new DataWord(0));
 	}
 
-	public void stackPushOne() {
-		DataWord stackWord = new DataWord(1);
-		stackPush(stackWord);
-	}
+    public void stackPushOne() {
+        DataWord stackWord = new DataWord(1);
+        stackPush(stackWord);
+    }
+    public int getNonce(){
+        return contractAccount.getNonce();
+    }
 
 	public void stackPush(DataWord stackWord) {
 		verifyStackOverflow(0, 1); // Sanity Check
@@ -204,13 +219,21 @@ public class Program {
 
 	public byte[] sweep(int n) {
 
-		if (pc + n > ops.length)
-			stop();
+//        if (pc + n > ops.length)
+//            stop();
+        int start = pc + 1;
+        if(start > ops.length){
+            start = ops.length - 1;
+        }
+        int end = start + n;
+        if(end>ops.length){
+            end = ops.length - 1;
+        }
 
-		byte[] data = Arrays.copyOfRange(ops, pc, pc + n);
-		pc += n;
-		if (pc >= ops.length)
-			stop();
+        byte[] data = Arrays.copyOfRange(ops, start, end);
+        pc += n + 1;
+        if (pc >= ops.length)
+            stop();
 
 		return data;
 	}
@@ -281,9 +304,9 @@ public class Program {
 		memory.extend(offset, size);
 	}
 
-	public int callToAddress(OpCode type, DataWord codeAddress, DataWord inDataOffs, DataWord inDataSize,
-			DataWord outDataOffs, DataWord outDataSize) {
-		returnDataBuffer = null; // reset return buffer right before the call
+    public int callToAddress(OpCode type, DataWord codeAddress, DataWord inDataOffs, DataWord inDataSize,
+                             DataWord outDataOffs, DataWord outDataSize,DataWord value) {
+        returnDataBuffer = null; // reset return buffer right before the call
 
 		int gas_cost = 2;
 		if (getCallDeep() == MAX_DEPTH) {
@@ -294,51 +317,138 @@ public class Program {
 		byte[] data = memoryChunk(inDataOffs.intValue(), inDataSize.intValue());
 		ProgramResult result = null;
 
-		AccountInfoWrapper nextcontractAccount = getProgramContractAccount(codeAddress);
-		if (nextcontractAccount != null && nextcontractAccount instanceof CVMAccountWrapper) {
-			CVMAccountWrapper cvmAccount = (CVMAccountWrapper) nextcontractAccount;
-			cvmAccount.loadStorageTrie(mcore.getStateTrie());
-			ProgramInvokerInfo nextprogramInvoke = new ProgramInvokerInfo(invokeInfo.getContractAccount(),
-					invokeInfo.getTxw(), cvmAccount, data, invokeInfo.getBlockInfo(), invokeInfo.getCallDeep() + 1);
+        AccountInfoWrapper nextcontractAccount = getProgramContractAccount(codeAddress);
+        if(!value.isZero()){
+            if(invokeInfo.getContractAccount().zeroSubCheckAndGet(value.sValue()).signum()<0){
+                throw new TransactionParameterInvalidException("balance not enough");
+            }
+            nextcontractAccount.addAndGet(value.sValue());
+        }
 
-			Program program = new Program(cvmAccount, mcore, nextprogramInvoke, storage);
-			BrewVM.play(program);
-			result = program.getResult();
-			
-			addGas(program.getGas_cost());
 
-			// getResult().merge(result);gas....值
+        if (nextcontractAccount != null && nextcontractAccount instanceof CVMAccountWrapper) {
 
-			if (result.getException() != null || result.isRevert()) {
-				stackPushZero();
-				if (result.getException() != null) {
-					return gas_cost;
-				}
-			} else {
-				stackPushOne();
-			}
-		} else if (nextcontractAccount != null && nextcontractAccount instanceof RC20AccountWrapper) {
-			CRC20Contract contract = new CRC20Contract(mcore, invokeInfo, (RC20AccountWrapper) nextcontractAccount);
-			callToPrecompiledAddress(inDataOffs, inDataSize, outDataOffs, outDataSize, contract);
-			return gas_cost;
-		} else if (nextcontractAccount != null && nextcontractAccount instanceof RC721AccountWrapper) {
-			CRC21Contract contract = new CRC21Contract(mcore, invokeInfo, (RC721AccountWrapper) nextcontractAccount);
-			callToPrecompiledAddress(inDataOffs, inDataSize, outDataOffs, outDataSize, contract);
-			return gas_cost;
 
-		} else {
-			stackPushOne();
-		}
-		if (result != null) {
-			byte[] buffer = result.getHReturn();
-			int offset = outDataOffs.intValue();
-			int size = outDataSize.intValue();
-			memorySaveLimited(offset, buffer, size);
-			returnDataBuffer = buffer;
-		}
+            CVMAccountWrapper cvmAccount = (CVMAccountWrapper) nextcontractAccount;
+            cvmAccount.loadStorageTrie(mcore.getStateTrie());
+            txw.getTouchAccounts().put(nextcontractAccount.getInfo().getAddress(), cvmAccount);
 
-		return gas_cost;
-	}
+            if(inDataSize.intValueSafe()>0) {
+                ProgramInvokerInfo nextprogramInvoke = new ProgramInvokerInfo(invokeInfo.getContractAccount(),
+                        invokeInfo.getTxw(), cvmAccount, data, invokeInfo.getBlockInfo(), invokeInfo.getCallDeep() + 1, value);
+
+                Program program = new Program(cvmAccount, txw, nextprogramInvoke, storage, precompilers);
+                BrewVM.play(program);
+                result = program.getResult();
+
+                addGas(program.getGas_cost());
+
+                // getResult().merge(result);gas....值
+
+
+                if (result.getException() != null || result.isRevert()) {
+                    stackPushZero();
+                    if (result.getHReturn() != null) {
+                        getResult().setHReturn(result.getHReturn());
+                    }
+                    getResult().setRevert();
+                    stackPushZero();
+                    this.stop();
+                } else {
+                    stackPushOne();
+                }
+            }else{
+                stackPushOne();
+            }
+            cvmAccount.setDirty(true);
+//		} else if (nextcontractAccount != null && nextcontractAccount instanceof RC20AccountWrapper) {
+//			CRC20Contract contract = new CRC20Contract(mcore, invokeInfo, (RC20AccountWrapper) nextcontractAccount);
+//			callToPrecompiledAddress(inDataOffs, inDataSize, outDataOffs, outDataSize, contract);
+//			return gas_cost;
+//		} else if (nextcontractAccount != null && nextcontractAccount instanceof RC721AccountWrapper) {
+//			CRC21Contract contract = new CRC21Contract(mcore, invokeInfo, (RC721AccountWrapper) nextcontractAccount);
+//			callToPrecompiledAddress(inDataOffs, inDataSize, outDataOffs, outDataSize, contract);
+//			return gas_cost;
+        } else {
+            PrecompiledExecutor exec = precompilers.get(nextcontractAccount.getInfo().getType());
+            if (exec != null) {
+                callToPrecompiledExec(inDataOffs, inDataSize, outDataOffs, outDataSize, exec, nextcontractAccount);
+                return gas_cost;
+            } else {
+                stackPushOne();
+            }
+        }
+
+        if (result != null) {
+            getResult().addLogInfo(result.logInfos);
+            byte[] buffer = result.getHReturn();
+            int offset = outDataOffs.intValue();
+            int size = outDataSize.intValue();
+            memorySaveLimited(offset, buffer, size);
+            returnDataBuffer = buffer;
+        }
+
+        return gas_cost;
+    }
+
+
+    public int createContract(byte[] codeData, byte[] address,DataWord callValue)  {
+
+            // 构建函数
+        BlockContextDWORD btx = new BlockContextDWORD(getBtx());
+        ByteString newAddr = ByteString.copyFrom(address);
+        AccountInfo.Builder account = mcore.getAccountHandler().getAccountOrCreate(newAddr.toByteArray());
+        CVMAccountWrapper caw = new CVMAccountWrapper(account);
+        CVMContract.Builder contract = CVMContract.newBuilder().setDatas(ByteString.copyFrom(codeData));
+        contract.setParrallel(false);
+        caw.setCVMContract(contract.build());
+        caw.loadStorageTrie(mcore.getStateTrie());
+        getBtx().getAccounts().put(newAddr,caw);
+
+
+        ProgramInvokerInfo invoker = new ProgramInvokerInfo(this.getContractAccount(), txw, caw, null, btx, 0,callValue);
+        Program createProgram = new Program(caw, txw, invoker, new TxStorage(txw), precompilers);
+        try {
+            if(!invoker.getCallValue().isZero())
+            {
+                BigInteger msgValue = BytesHelper.bytesToBigInteger(invoker.getCallValue().getData());
+                if(this.getContractAccount().zeroSubCheckAndGet(msgValue).signum() < 0){
+                    throw new TransactionExecuteException("not enough balance");
+                }
+                caw.addAndGet(msgValue);
+            }
+
+            BrewVM.play(createProgram);
+            BigInteger gas_cost = BigInteger.valueOf(Math.min(CVMConfig.GAS_CVM_MAX_COST, Math.max(CVMConfig.GAS_CVM_MIN_COST, createProgram.getGas_cost() / 10)));
+
+            getBtx().getGasAccumulate().addAndGet(BigInteger.ONE);
+
+            ProgramResult createResult = createProgram.getResult();
+            byte[] creats = createResult.getHReturn();
+            if (creats.length > 0) {
+                CVMContract.Builder newcontract = CVMContract.newBuilder().setDatas(ByteString.copyFrom(creats))
+                        .setParrallel(contract.getParrallel());
+                caw.setCVMContract(newcontract.build());
+
+                txw.getBlockContext().getAccounts().put(newAddr,caw);
+				getResult().addLogInfo(createResult.logInfos);
+            } else {
+                throw new TransactionExecuteException("error in create contract");
+            }
+            // reput it
+        } catch (TransactionExecuteException e) {
+            log.error("error in exec createcontract", e);
+            setStopped(true);
+//            throw new TransactionExecuteException(e.getMessage());
+        }
+
+
+        int gas_cost = 5;
+
+
+        return gas_cost;
+    }
+
 
 	public void resetFutureRefund() {
 		getResult().resetFutureRefund();
@@ -385,24 +495,69 @@ public class Program {
 		}
 	}
 
-	public DataWord getOwnerAddress() {
-		return invokeInfo.getOwnerAddress().clone();
-	}
+    public DataWord getCodeHash(DataWord address) {
 
-	public DataWord getBlockHash(int index) {
-		return this.getPrevHash();
-	}
+        AccountInfo.Builder account = null;
+        try {
+            account = mcore.getAccountHandler().getAccount(address.getLast20Bytes());
+        } catch (java.lang.Exception e) {
+            log.debug("cannot getCodeAt account:" + address.shortHex() + ":" + e.getMessage());
+        }
+        byte[] code = null;
+        if (account != null && account.getExtData() != null) {
+            if (account.getType() == AccountType.CVM_CONTRACT) {
+                try {
+                    code = CVMContract.parseFrom(account.getExtData()).getDatas().toByteArray();
+                } catch (Throwable e1) {
+                    log.warn("error in parse contract ", e1);
+                } // invokeInfo.getRepository().getCode(address.getLast20Bytes());
+                if(code==null){
+                    return DataWord.ZERO;
+                }
+                return new DataWord(mcore.getCrypto().sha3(code));
+            } else if (account.getType() == AccountType.RC20_CONTRACT) {
+                return address;
+            } else if (account.getType() == AccountType.RC721_CONTRACT) {
+                return address;
+            } else {
+                return DataWord.ZERO;
+            }
+        } else {
+            if(account==null){
+                return DataWord.ZERO;
+            }else{
+                return new DataWord(mcore.getCrypto().sha3(DataWord.EMPTY_CODEHASH_ACCOUNT));
+            }
+        }
+    }
 
-	public DataWord getBalance(DataWord address) {
-		BigInteger balance = BigInteger.ZERO;
-		try {
-			balance = getStorage().getBalance(address.getNoLeadZeroesData());
-		} catch (java.lang.Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return new DataWord(balance.toByteArray());
-	}
+
+    public DataWord getOwnerAddress() {
+        return invokeInfo.getOwnerAddress().clone();
+    }
+
+    public DataWord getContractAddress() {
+        return invokeInfo.getOwnerAddress().clone();
+    }
+    public DataWord getBlockHash(int index) {
+        return this.getPrevHash();
+    }
+    public DataWord getBalance() {
+        return invokeInfo.getBalance();
+    }
+    public DataWord getChainID(){
+        return invokeInfo.getChainID();
+    }
+    public DataWord getBalance(DataWord address) {
+        BigInteger balance = BigInteger.ZERO;
+        try {
+            balance = getStorage().getBalance(address.getNoLeadZeroesData());
+        } catch (java.lang.Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return new DataWord(balance.toByteArray());
+    }
 
 	public DataWord getOriginAddress() {
 		return invokeInfo.getOriginAddress().clone();
@@ -658,19 +813,28 @@ public class Program {
 		return sb.toString();
 	}
 
-	public int verifyJumpDest(DataWord nextPC) {
-		if (nextPC.bytesOccupied() > 4) {
-			throw Program.Exception.badJumpDestination(-1);
-		}
-		int ret = nextPC.intValue();
-		if (!contractAccount.getCompiledProgram().hasJumpDest(ret)) {
-			throw Program.Exception.badJumpDestination(ret);
-		}
-		return ret;
-	}
+    public int verifyJumpDest(DataWord nextPC) {
+//        if (nextPC.bytesOccupied() > 4) {
+//            log.error("verifyJumpDest==>"+nextPC.intValueSafe());
+//            throw Program.Exception.badJumpDestination(-1);
+//        }
+        if (nextPC.bytesOccupied() > 4) {
+            log.error("nextPC.bytesOccupied()toolarge Dest==>"+nextPC.intValueSafe());
+            System.out.println("verifyJumpDest==>"+nextPC.intValueSafe());
+//            throw Program.Exception.badJumpDestination(-1);
+        }
+        int ret = nextPC.intValue();
 
-	public void callToPrecompiledAddress(DataWord inDataOffs, DataWord inDataSize, DataWord outDataOffs,
-			DataWord outDataSize, PrecompiledContract contract
+        log.error("verifyJumpDest ==>"+nextPC.intValue()+",data="+nextPC.shortHex());
+
+        if (!contractAccount.getCompiledProgram().hasJumpDest(ret)) {
+            throw Program.Exception.badJumpDestination(ret);
+        }
+        return ret;
+    }
+
+    public void callToPrecompiledAddress(DataWord inDataOffs, DataWord inDataSize, DataWord outDataOffs,
+                                         DataWord outDataSize, PrecompiledContracts.PrecompiledContract contract
 
 	) {
 		returnDataBuffer = null; // reset return buffer right before the call
@@ -680,9 +844,38 @@ public class Program {
 			return;
 		}
 
-		byte[] data = this.memoryChunk(inDataOffs.intValue(), inDataSize.intValue());
+        byte[] data = this.memoryChunk(inDataOffs.intValue(), inDataSize.intValue());
+//MCoreServices mcore, ProgramInvokerInfo caller, RC20AccountWrapper rc20Account, byte[] data
+//		Pair<Boolean, byte[]> out = exec.execute(mcore, invokeInfo,  actw,data);
+        Pair<Boolean, byte[]> out = contract.execute(data);
 
-		Pair<Boolean, byte[]> out = contract.execute(data);
+        if (out.getLeft()) { // success
+            this.stackPushOne();
+            returnDataBuffer = out.getRight();
+        } else {
+            this.stackPushZero();
+            this.setStopped(true);
+        }
+
+        this.memorySave(outDataOffs.intValue(), out.getRight());
+    }
+
+    public void callToPrecompiledExec(DataWord inDataOffs, DataWord inDataSize, DataWord outDataOffs,
+                                      DataWord outDataSize,
+                                      PrecompiledExecutor exec, AccountInfoWrapper contractAiw
+
+    ) {
+        returnDataBuffer = null; // reset return buffer right before the call
+
+        if (getCallDeep() == MAX_DEPTH) {
+            stackPushZero();
+            return;
+        }
+
+        byte[] data = this.memoryChunk(inDataOffs.intValue(), inDataSize.intValue());
+//MCoreServices mcore, ProgramInvokerInfo caller, RC20AccountWrapper rc20Account, byte[] data
+        Pair<Boolean, byte[]> out = exec.execute(txw, invokeInfo, contractAiw, data);
+//		Pair<Boolean, byte[]> out = contract.execute(data);
 
 		if (out.getLeft()) { // success
 			this.stackPushOne();

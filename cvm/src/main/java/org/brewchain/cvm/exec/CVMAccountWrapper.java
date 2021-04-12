@@ -33,6 +33,7 @@ public class CVMAccountWrapper extends AccountInfoWrapper {
 
 	@Override
 	public synchronized AccountInfo build(long blocknumber) {
+		super.setDirty(true);
 		return super.build(blocknumber);
 	}
 

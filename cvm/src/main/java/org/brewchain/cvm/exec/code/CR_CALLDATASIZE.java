@@ -15,7 +15,7 @@ public class CR_CALLDATASIZE extends AbstractCodeRunner {
 	public int exec(Program program, Stack stack, StringBuffer hint) {
 		DataWord dataSize = program.getDataSize();
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append( "size: " + dataSize.value());
 		}

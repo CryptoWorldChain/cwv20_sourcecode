@@ -16,7 +16,7 @@ public class CR_NOT extends AbstractCodeRunner {
 		DataWord word1 = program.stackPop();
 		word1.bnot();
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append(word1.value());
 		}

@@ -19,7 +19,7 @@ public class CR_CALLER extends AbstractCodeRunner {
 		
 		DataWord callerAddress = program.getCallerAddress();
 
-		if (hint!=null)
+//		if (hint!=null)
 		{
 			hint.append("address: " + Hex.toHexString(callerAddress.getLast20Bytes()));
 		}

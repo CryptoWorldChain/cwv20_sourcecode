@@ -11,6 +11,7 @@ enum PCommand {
 	RUF = 1; //运行方法
 	RUC = 2; //运行合约
 	GCS = 3; //查询合约storage
+	CAL = 4;// call
 };
 
 message CVMContract {
@@ -18,6 +19,20 @@ message CVMContract {
 	bool	parrallel = 2;//是否并行执行	
 }
 
+message CVMReqCall{
+	string from = 1;
+	string to = 2;
+	bytes gas = 3;
+	bytes gasPrice = 4;
+	bytes value = 5;
+	bytes data = 6;
+}
+
+message CVMRespCall{
+	int32 ret_code = 1;
+	string ret_msg = 2;
+	bytes result = 3;
+}
 message AccountStorageMessage {
 	string address = 1;
 	repeated AccountStorageKey keys = 2;

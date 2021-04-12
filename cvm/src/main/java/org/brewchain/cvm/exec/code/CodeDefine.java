@@ -51,6 +51,11 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.XOR, CR_XOR.class);
 		pushCodeRunner(OpCode.NOT, CR_NOT.class);
 		pushCodeRunner(OpCode.BYTE, CR_BYTE.class);
+		pushCodeRunner(OpCode.SHL, CR_SHL.class);
+		pushCodeRunner(OpCode.SHR, CR_SHR.class);
+		pushCodeRunner(OpCode.SAR, CR_SAR.class);
+
+
 		pushCodeRunner(OpCode.SHA3, CR_SHA3.class);
 		pushCodeRunner(OpCode.ADDRESS, CR_ADDRESS.class);
 		pushCodeRunner(OpCode.BALANCE, CR_BALANCE.class);
@@ -67,12 +72,20 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.GASPRICE, CR_GASPRICE.class);
 		pushCodeRunner(OpCode.EXTCODESIZE, CR_EXTCODESIZE.class);
 		pushCodeRunner(OpCode.EXTCODECOPY, CR_EXTCODECOPY.class);
+
+		pushCodeRunner(OpCode.EXTCODEHASH, CR_EXTCODEHASH.class);
+
+		//0x40
 		pushCodeRunner(OpCode.BLOCKHASH, CR_BLOCKHASH.class);
 		pushCodeRunner(OpCode.COINBASE, CR_COINBASE.class);
 		pushCodeRunner(OpCode.TIMESTAMP, CR_TIMESTAMP.class);
 		pushCodeRunner(OpCode.NUMBER, CR_NUMBER.class);
 		pushCodeRunner(OpCode.DIFFICULTY, CR_DIFFICULTY.class);
 		pushCodeRunner(OpCode.GASLIMIT, CR_GASLIMIT.class);
+		pushCodeRunner(OpCode.CHAINID, CR_CHAINID.class);
+		pushCodeRunner(OpCode.SELFBALANCE, CR_SELFBALANCE.class);
+
+		//0x50
 		pushCodeRunner(OpCode.POP, CR_POP.class);
 		pushCodeRunner(OpCode.MLOAD, CR_MLOAD.class);
 		pushCodeRunner(OpCode.MSTORE, CR_MSTORE.class);
@@ -85,6 +98,8 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.MSIZE, CR_MSIZE.class);
 		pushCodeRunner(OpCode.GAS, CR_GAS.class);
 		pushCodeRunner(OpCode.JUMPDEST, CR_JUMPDEST.class);
+
+		//0x60
 		pushCodeRunner(OpCode.PUSH1, CR_PUSHS_1_32.class);
 		pushCodeRunner(OpCode.PUSH2, CR_PUSHS_1_32.class);
 		pushCodeRunner(OpCode.PUSH3, CR_PUSHS_1_32.class);
@@ -117,6 +132,8 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.PUSH30, CR_PUSHS_1_32.class);
 		pushCodeRunner(OpCode.PUSH31, CR_PUSHS_1_32.class);
 		pushCodeRunner(OpCode.PUSH32, CR_PUSHS_1_32.class);
+
+		//0x80
 		pushCodeRunner(OpCode.DUP1, CR_DUPS_1_16.class);
 		pushCodeRunner(OpCode.DUP2, CR_DUPS_1_16.class);
 		pushCodeRunner(OpCode.DUP3, CR_DUPS_1_16.class);
@@ -133,6 +150,8 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.DUP14, CR_DUPS_1_16.class);
 		pushCodeRunner(OpCode.DUP15, CR_DUPS_1_16.class);
 		pushCodeRunner(OpCode.DUP16, CR_DUPS_1_16.class);
+
+		//0x90
 		pushCodeRunner(OpCode.SWAP1, CR_SWAPS_1_16.class);
 		pushCodeRunner(OpCode.SWAP2, CR_SWAPS_1_16.class);
 		pushCodeRunner(OpCode.SWAP3, CR_SWAPS_1_16.class);
@@ -149,17 +168,23 @@ public class CodeDefine {
 		pushCodeRunner(OpCode.SWAP14, CR_SWAPS_1_16.class);
 		pushCodeRunner(OpCode.SWAP15, CR_SWAPS_1_16.class);
 		pushCodeRunner(OpCode.SWAP16, CR_SWAPS_1_16.class);
+
+		//0xa0
 		pushCodeRunner(OpCode.LOG0, CR_LOGS_0_4.class);
 		pushCodeRunner(OpCode.LOG1, CR_LOGS_0_4.class);
 		pushCodeRunner(OpCode.LOG2, CR_LOGS_0_4.class);
 		pushCodeRunner(OpCode.LOG3, CR_LOGS_0_4.class);
 		pushCodeRunner(OpCode.LOG4, CR_LOGS_0_4.class);
+
+		//0xf0
 		pushCodeRunner(OpCode.CREATE, CR_CREATE.class);
 		pushCodeRunner(OpCode.CALL, CR_CALL.class);
 		pushCodeRunner(OpCode.CALLCODE, CR_CALLCODE.class);
 		pushCodeRunner(OpCode.RETURN, CR_RETURN.class);
 		pushCodeRunner(OpCode.DELEGATECALL, CR_DELEGATECALL.class);
+		pushCodeRunner(OpCode.CREATE2,CR_CREATE2.class);
 		pushCodeRunner(OpCode.STATICCALL, CR_STATICCALL.class);
+
 		pushCodeRunner(OpCode.REVERT, CR_REVERT.class);
 		pushCodeRunner(OpCode.SUICIDE, CR_SUICIDE.class);
 	}
